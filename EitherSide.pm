@@ -11,7 +11,7 @@ our @EXPORT_OK = qw(get_context);
 
 use constant DEFAULT_WORDS => 2;
 
-our $VERSION = '1.0';
+our $VERSION = '1.1';
 
 sub get_context {
     my ($n, $string, @words) = @_;
@@ -38,8 +38,8 @@ sub context {
 sub as_sparse_list {
     my $self = shift;
     my @words = @_;
-       my %keywords = map { $_ => 1 }
-        map { split /\s/, $_ } @words;    # Decouple phrases
+       my %keywords = map { lc $_ => 1 }
+        map { split /\s+/, $_ } @words;    # Decouple phrases
 
     # First, split the string into words
     my @split_s = split /\s+/, $self->{text};
@@ -48,11 +48,15 @@ sub as_sparse_list {
     my @marks = (undef)x @split_s;
     my $ok=0;
     for (0 .. $#split_s) {
-        if (exists $keywords{ $split_s[$_] }) {
-            $ok++;
-            # Mark it and its $n neighbours.
-            $marks[$_] = $split_s[$_] for grep { $_ >= 0 and $_ <= $#split_s }
-                $_ - $self->{n} .. $_ + $self->{n};
+        my $word = lc $split_s[$_];
+        for my $subword (split /\W+/, $word) {
+            if (exists $keywords{$subword}) {
+                $ok++;
+                # Mark it and its $n neighbours.
+                $marks[$_] = $split_s[$_] for grep { $_ >= 0 and $_ <= $#split_s }
+                    $_ - $self->{n} .. $_ + $self->{n};
+                last;
+            }
         }
     }
 
