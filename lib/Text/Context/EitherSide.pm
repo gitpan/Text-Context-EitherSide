@@ -5,87 +5,87 @@ use strict;
 use warnings;
 use Carp;
 
-require Exporter;
-our @ISA=qw(Exporter);
+our $VERSION = '1.2';
+
+use base 'Exporter';
 our @EXPORT_OK = qw(get_context);
 
 use constant DEFAULT_WORDS => 2;
 
-our $VERSION = '1.1';
-
 sub get_context {
-    my ($n, $string, @words) = @_;
-    Text::Context::EitherSide->new($string, context => $n)->as_string(@words);
+	my ($n, $string, @words) = @_;
+	Text::Context::EitherSide->new($string, context => $n)->as_string(@words);
 }
 
 sub new {
-    my $class = shift;
-    my $text = shift or carp "No text supplied for context search";
-    my %args = @_;
+	my $class = shift;
+	my $text  = shift or carp "No text supplied for context search";
+	my %args  = @_;
 
-    return bless {  
-        n => exists $args{context}? $args{context}: DEFAULT_WORDS,
-        text => $text
-    }, $class;
+	return bless {
+		n => exists $args{context} ? $args{context} : DEFAULT_WORDS,
+		text => $text
+	}, $class;
 }
 
-sub context { 
-    my $self = shift;
-    $self->{n} = shift if @_;
-    return $self->{n};
+sub context {
+	my $self = shift;
+	$self->{n} = shift if @_;
+	return $self->{n};
 }
 
 sub as_sparse_list {
-    my $self = shift;
-    my @words = @_;
-       my %keywords = map { lc $_ => 1 }
-        map { split /\s+/, $_ } @words;    # Decouple phrases
+	my $self     = shift;
+	my @words    = @_;
+	my %keywords = map { lc $_ => 1 }
+		map { split /\s+/, $_ } @words;    # Decouple phrases
 
-    # First, split the string into words
-    my @split_s = split /\s+/, $self->{text};
+	# First, split the string into words
+	my @split_s = split /\s+/, $self->{text};
 
-    # Now, locate keywords and "mark" the indices we want.
-    my @marks = (undef)x @split_s;
-    my $ok=0;
-    for (0 .. $#split_s) {
-        my $word = lc $split_s[$_];
-        for my $subword (split /\W+/, $word) {
-            if (exists $keywords{$subword}) {
-                $ok++;
-                # Mark it and its $n neighbours.
-                $marks[$_] = $split_s[$_] for grep { $_ >= 0 and $_ <= $#split_s }
-                    $_ - $self->{n} .. $_ + $self->{n};
-                last;
-            }
-        }
-    }
+	# Now, locate keywords and "mark" the indices we want.
+	my @marks = (undef) x @split_s;
+	my $ok    = 0;
+	for (0 .. $#split_s) {
+		my $word = lc $split_s[$_];
+		for my $subword (split /\W+/, $word) {
+			if (exists $keywords{$subword}) {
+				$ok++;
 
-    return $ok? @marks : ();
+				# Mark it and its $n neighbours.
+				$marks[$_] = $split_s[$_]
+					for grep { $_ >= 0 and $_ <= $#split_s }
+					$_ - $self->{n} .. $_ + $self->{n};
+				last;
+			}
+		}
+	}
+
+	return $ok ? @marks : ();
 }
 
 sub as_list {
-    my $self = shift;
-    my @sparse = $self->as_sparse_list(@_);
-    return () unless @sparse;
-    my @ret;
-    for (0..$#sparse) {
-        if (defined $sparse[$_]) {
-            push @ret, $sparse[$_];
-        } else {
-            push @ret, "..." unless @ret and $ret[-1] eq "...";
-        }
-    }
-    return @ret;
-}       
- 
+	my $self   = shift;
+	my @sparse = $self->as_sparse_list(@_);
+	return () unless @sparse;
+	my @ret;
+	for (0 .. $#sparse) {
+		if (defined $sparse[$_]) {
+			push @ret, $sparse[$_];
+		} else {
+			push @ret, "..." unless @ret and $ret[-1] eq "...";
+		}
+	}
+	return @ret;
+}
+
 sub as_string {
-    my $self = shift;
-    return(join" ",$self->as_list(@_));;
+	my $self = shift;
+	return (join " ", $self->as_list(@_));
 }
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
@@ -162,7 +162,7 @@ Allows you to get and set the number of the words on either side.
 
 =head2 as_sparse_list
 
-    $c->sparse_list(@keywords)
+    $c->as_sparse_list(@keywords)
 
 Returns the keywords, plus I<n> words on either side, as a sparse list;
 the original text is split into an array of words, and non-contextual
@@ -202,9 +202,20 @@ but needs to be explicitly imported. Nothing is exported by default.
 L<Text::Context> is an even smarter way of extracting a contextual
 string.
 
+=head1 AUTHOR
+
+Original author: Simon Cozens
+
+Current maintainer: Tony Bowden
+
+=head1 BUGS and QUERIES
+
+Please direct all correspondence regarding this module to:
+  bug-Text-Context-EitherSide@rt.cpan.org
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002 by Kasei Limited, http://www.kasei.com/
+Copyright 2002-2004 by Kasei Limited, http://www.kasei.com/
 
 You may use and redistribute this module under the terms of the
 Artistic License.
